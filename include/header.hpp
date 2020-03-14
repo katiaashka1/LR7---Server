@@ -166,16 +166,15 @@ public:
 
 // Инициализация логов
 static void init_logging() {
-    
     logging::add_file_log (
-                    keywords::file_name = "info.log",
-                    keywords::format = "[%TimeStamp%] [%ThreadID%] [%Severity%] %Message%"
+            keywords::file_name = "info.log",
+            keywords::format = "[%TimeStamp%] [%ThreadID%] [%Severity%] %Message%"
             );
 
     logging::add_console_log (
             std::cout,
             keywords::format = "[%TimeStamp%] [%ThreadID%] [%Severity%] %Message%"
-    );
+            );
 
     logging::add_common_attributes();
 }
@@ -187,7 +186,7 @@ void accept_thread() {
     boost::asio::ip::tcp::acceptor acceptor(service,
             boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 8001));
     init_logging();
-    
+
     while (true) {
         // Создаем  умный указатель cl (на сокет)
         std::shared_ptr<Server> cl = std::make_shared<Server>();
