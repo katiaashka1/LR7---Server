@@ -14,6 +14,16 @@
 #include <boost/thread/thread.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/asio.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/utility/setup/file.hpp>
+#include <boost/log/sources/severity_feature.hpp>
+#include <boost/log/sources/record_ostream.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/log/utility/setup/console.hpp>
+#include <boost/log/expressions.hpp>
+
+namespace logging = boost::log;
+namespace keywords = boost::log::keywords;
 
 #define MAX_MSG 1024
 
@@ -154,19 +164,36 @@ public:
     }
 };
 
+// Инициализация логов
+static void init_logging() {
+    
+    logging::add_file_log (
+                    keywords::file_name = "info.log",
+                    keywords::format = "[%TimeStamp%] [%ThreadID%] [%Severity%] %Message%"
+            );
+
+    logging::add_console_log (
+            std::cout,
+            keywords::format = "[%TimeStamp%] [%ThreadID%] [%Severity%] %Message%"
+    );
+
+    logging::add_common_attributes();
+}
+
 // Поток для прослушивания новых клиентов
 void accept_thread() {
     // Задаем порт для прослушивания и создаем акцептор (приемник)
     // — один объект, который принимает клиентские подключения
     boost::asio::ip::tcp::acceptor acceptor(service,
             boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 8001));
-
+    init_logging();
+    
     while (true) {
         // Создаем  умный указатель cl (на сокет)
         std::shared_ptr<Server> cl = std::make_shared<Server>();
         std::cout << "wait client" << std::endl;
         acceptor.accept(cl->sock_r());  // Ждем подключение клиента
-        std::cout << "client acepted" << std::endl;
+        BOOST_LOG_TRIVIAL(trace) << "client acepted" << endl;
         // Потокобезопасный доступ к вектору клииентов
         boost::recursive_mutex::scoped_lock lk(mx);
         clients.push_back(cl);  // Добавление нового клиента в вектор
