@@ -92,7 +92,8 @@ public:
         if (msg.find("login ") == 0) on_login(msg);
         else if (msg.find("ping") == 0) on_ping();
         else if (msg.find("ask_clients") == 0) on_clients();
-        else std::cerr << "invalid msg " << msg << std::endl;
+        else
+        std::cerr << "invalid msg " << msg << std::endl;
     }
 
     void on_login(const std::string &msg) {    // Регистрация пользователя
@@ -102,12 +103,14 @@ public:
         write("login ok\n");
         {
             boost::recursive_mutex::scoped_lock lk(mx);
+            // Каждый клиент выставляет флаг
             for (unsigned i = 0; i < clients.size() - 1; i++)
-                clients[i]->update_clients_changed();   // Каждый клиент выставляет фдаг
+                clients[i]->update_clients_changed();
         }
     }
 
-    void update_clients_changed() { // Обновление списка клиентов (выставление флага)
+    // Обновление списка клиентов (выставление флага)
+    void update_clients_changed() {
         clients_changed_ = true;
     }
 
