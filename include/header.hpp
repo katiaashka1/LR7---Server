@@ -18,11 +18,10 @@
 #define MAX_MSG 1024
 
 
-using namespace std;
 using namespace boost::asio;
 
-//using std::cout;
-//using std::endl;
+using std::cout;
+using std::endl;
 
 
 
@@ -150,7 +149,7 @@ public:
     bool timed_out() const {    // Подсчет времени для отключения
         boost::posix_time::ptime now =
                 boost::posix_time::microsec_clock::local_time();
-        long long ms = (now - last_ping).total_milliseconds();
+        int64 ms = (now - last_ping).total_milliseconds();
         return ms > 5000;
     }
 };
