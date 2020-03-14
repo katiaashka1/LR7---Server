@@ -23,20 +23,20 @@
 using std::cout;
 using std::endl;
 
-
-boost::asio::io_service service; // Экземпляр для общения с сервисом
-// ввода/вывода операционной системы
+// Создаем экземпляр для общения с сервисом ввода/вывода ОС
+boost::asio::io_service service;
 boost::recursive_mutex mx;
 
 class Server;
 
+// Вектор клиентов
 std::vector<std::shared_ptr<Server>> clients;
 
 class Server {
 private:
     boost::asio::ip::tcp::socket sock;
-    int already_read_;  // Ожидание чтения
-    char buff_[MAX_MSG];    // Буфер
+    int already_read_;
+    char buff_[MAX_MSG];
     std::string username_;
     bool clients_changed_;
     boost::posix_time::ptime last_ping;
@@ -54,16 +54,17 @@ public:
 
     void answer_to_client() {   // Ответ клиенту
         try {
-            read_request(); // Чтение запроса
+            read_request();     // Чтение запроса
             process_request();  //Обработка запроса
         }
-        catch (boost::system::system_error &)   // Обработка ошибки, которая
-        // может произойти в блоке try
-        {
+        // Обработка ошибки, которая может произойти в блоке try
+        catch (boost::system::system_error &) {
             stop(); // Выключение сервера
         }
-        if (timed_out())    // Провека на время. Если клиент не пингутся
-            // в теченнии 5 сек, то кикнуть его
+        
+        // Провека на время
+        // Если клиент не пингукется в теченнии 5 сек, то кикнуть его
+        if (timed_out())
             stop();
     }
 
@@ -78,7 +79,8 @@ public:
                            < buff_ + already_read_;
         if (!found_enter)
             return;
-// Метка для засекания пинга
+        
+        // Метка для засекания пинга
         last_ping = boost::posix_time::microsec_clock::local_time();
 
         // Парсим сообщение
@@ -112,10 +114,9 @@ public:
         clients_changed_ = true;
     }
 
-
     // Клиент может делать следующие запросы: получить список
-    // всех подключенных клиентов и
-    // пинговаться, где в ответе сервера будет либо ping_ok,
+    // всех подключенных клиентов и пинговаться,
+    // где в ответе сервера будет либо ping_ok,
     // либо client_list_chaned
     // (в последнем случае клиент повторно запрашивает список
     // подключенных клиентов);
@@ -127,7 +128,7 @@ public:
 
     void on_clients() { // Ответ клиенту
         std::string msg;
-        {
+    {
             boost::recursive_mutex::scoped_lock lk(mx);
             for (auto b = clients.begin(), e = clients.end(); b != e; ++b)
                 msg += (*b)->username() + " ";
@@ -135,9 +136,9 @@ public:
         write("clients " + msg + "\n");
     }
 
-    void write(const std::string &msg) {   // Запись сообшениия в сокета
+    void write(const std::string &msg) {   // Запись сообшениия
         //cout<<msg<<endl;
-        sock.write_some(boost::asio::buffer(msg));   //
+        sock.write_some(boost::asio::buffer(msg));
     }
 
     void stop() {   // Закрытие сокета
