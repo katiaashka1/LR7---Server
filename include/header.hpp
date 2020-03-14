@@ -187,13 +187,12 @@ void handle_clients_thread(){
 
 
 
-int main(){
-    boost::thread_group threads;
-    threads.create_thread(accept_thread);
-    threads.create_thread(handle_clients_thread);
-    threads.join_all();
-
-    return 0;
-}
+//int main(){
+//    boost::thread_group threads;
+//    threads.create_thread(accept_thread);
+//    threads.create_thread(handle_clients_thread);
+//    threads.join_all();
+//    return 0;
+//}
 
 #endif // INCLUDE_HEADER_HPP_
