@@ -184,7 +184,7 @@ void handle_clients_thread() {
 
         // Удаляем клиенты, у которых закончилось время
         clients.erase(std::remove_if(clients.begin(), clients.end(),
-                                     boost::bind(&Server::timed_out, _1)), clients.end());
+                    boost::bind(&Server::timed_out, _1)), clients.end());
     }
 }
 
