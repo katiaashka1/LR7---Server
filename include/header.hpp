@@ -6,6 +6,8 @@
 #include <iostream>
 #include <vector>
 #include <mutex>
+#include <algorithm>
+#include <string>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
@@ -17,7 +19,13 @@
 using namespace std;
 using namespace boost::asio;
 
-io_service service; // Экземпляр для общения с сервисом ввода/вывода операционной системы
+//using std::cout;
+//using std::endl;
+
+
+
+io_service service; // Экземпляр для общения с сервисом
+                    // ввода/вывода операционной системы
 boost::recursive_mutex mx;
 
 class Server;
@@ -26,16 +34,16 @@ std::vector<std::shared_ptr<Server>> clients;
 
 class Server {
 private:
-    ip::tcp::socket sock;
+    boost::asio::ip::tcp::socket sock;
     enum {
         max_msg = 1024
     };    // Максимальный размер сообщегтя
     int already_read_;  // Ожидание чтения
     char buff_[max_msg];    // Буфер
-    bool started_;
     std::string username_;
     bool clients_changed_;
     boost::posix_time::ptime last_ping;
+
 public:
     Server() : sock(service), clients_changed_(false) {}
 
@@ -52,11 +60,13 @@ public:
             read_request(); // Чтение запроса
             process_request();  //Обработка запроса
         }
-        catch (boost::system::system_error &)   // Обработка ошибки, которая может произойти в блоке try
+        catch (boost::system::system_error &)   // Обработка ошибки, которая
+                                                // может произойти в блоке try
         {
             stop(); // Выключение сервера
         }
-        if (timed_out())   // Провека на время. Если клиент не пингутся в теченнии 5 сек, то кикнуть его
+        if (timed_out())    // Провека на время. Если клиент не пингутся
+                            // в теченнии 5 сек, то кикнуть его
             stop();
     }
 
@@ -67,11 +77,12 @@ public:
     }
 
     void process_request() {    // Обработка полученого запроса
-        bool found_enter = std::find(buff_, buff_ + already_read_, '\n') < buff_ + already_read_;
+        bool found_enter = std::find(buff_, buff_ + already_read_, '\n')
+                                    < buff_ + already_read_;
         if (!found_enter)
             return;
-
-        last_ping = boost::posix_time::microsec_clock::local_time();    // Метка для засекания пинга
+// Метка для засекания пинга
+        last_ping = boost::posix_time::microsec_clock::local_time();
 
         // Парсим сообщение
         size_t pos = std::find(buff_, buff_ + already_read_, '\n') - buff_;
@@ -102,8 +113,8 @@ public:
     }
 
 
-    // Клиент может делать следующие запросы: получить список всех подключенных клиентов и пинговаться,
-    // где в ответе сервера будет либо ping_ok, либо client_list_chaned
+    // Клиент может делать следующие запросы: получить список всех подключенных клиентов и
+    // пинговаться, где в ответе сервера будет либо ping_ok, либо client_list_chaned
     // (в последнем случае клиент повторно запрашивает список подключенных клиентов);
     void on_ping() {
         //std::cout<<clients_changed_<<std::endl;
@@ -142,14 +153,17 @@ public:
 void accept_thread() {   // Поток для прослушивания новых клиентов
     // Задаем порт для прослушивания и создаем акцептор (приемник)
     // — один объект, который принимает клиентские подключения
-    ip::tcp::acceptor acceptor(service, ip::tcp::endpoint(ip::tcp::v4(), 8001));
+    ip::tcp::acceptor acceptor(service,
+            ip::tcp::endpoint(ip::tcp::v4(), 8001));
 
     while (true) {
-        std::shared_ptr<Server> cl = std::make_shared<Server>();    // Создаем  умный указатель cl (на сокет)
+        // Создаем  умный указатель cl (на сокет)
+        std::shared_ptr<Server> cl = std::make_shared<Server>();
         std::cout << "wait client" << std::endl;
         acceptor.accept(cl->sock_r());  // Ждем подключение клиента
         std::cout << "client acepted" << std::endl;
-        boost::recursive_mutex::scoped_lock lk(mx); // Потокобезопасный доступ к вектору клииентов
+        // Потокобезопасный доступ к вектору клииентов
+        boost::recursive_mutex::scoped_lock lk(mx);
         clients.push_back(cl);  // Добавление нового клиента в вектор
     }
 }
@@ -157,23 +171,27 @@ void accept_thread() {   // Поток для прослушивания нов�
 void handle_clients_thread() {   // Поток для прослушиваниия существующих клиентов
     while (true) {
         boost::this_thread::sleep(boost::posix_time::millisec(1));
-        boost::recursive_mutex::scoped_lock lk(mx); // Потокобезопасный доступ к вектору клииентов
+        // Потокобезопасный доступ к вектору клииентов
+        boost::recursive_mutex::scoped_lock lk(mx);
 
         for (auto b = clients.begin(); b != clients.end(); ++b)
             (*b)->answer_to_client();   // Отпраляем ответы КАЖДОМУ клиенту
 
         // Удаляем клиенты, у которых закончилось время
         clients.erase(std::remove_if(clients.begin(), clients.end(),
-                                     boost::bind(&Server::timed_out, _1)), clients.end());
+                boost::bind(&Server::timed_out, _1)), clients.end());
     }
 }
 
 
 //int main() {
 //    boost::thread_group threads;
-//    threads.create_thread(accept_thread);   // Поток для прослушивания новых клиентов
-//    threads.create_thread(handle_clients_thread);   // Поток для обработки существующих клиентов
-//    threads.join_all(); // Запуск потоков и ожидание завершения последнего
+//    // Поток для прослушивания новых клиентов
+//    threads.create_thread(accept_thread);
+//    // Поток для обработки существующих клиентов
+//    threads.create_thread(handle_clients_thread);
+//    // Запуск потоков и ожидание завершения последнего
+//    threads.join_all();
 //    return 0;
 //}
 
