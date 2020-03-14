@@ -61,7 +61,7 @@ public:
         catch (boost::system::system_error &) {
             stop(); // Выключение сервера
         }
-        
+
         // Провека на время
         // Если клиент не пингукется в теченнии 5 сек, то кикнуть его
         if (timed_out())
@@ -79,7 +79,7 @@ public:
                            < buff_ + already_read_;
         if (!found_enter)
             return;
-        
+
         // Метка для засекания пинга
         last_ping = boost::posix_time::microsec_clock::local_time();
 
