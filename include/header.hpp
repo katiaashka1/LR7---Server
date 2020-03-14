@@ -15,6 +15,8 @@
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/asio.hpp>
 
+#define MAX_MSG 1024
+
 
 using namespace std;
 using namespace boost::asio;
@@ -35,11 +37,8 @@ std::vector<std::shared_ptr<Server>> clients;
 class Server {
 private:
     boost::asio::ip::tcp::socket sock;
-    enum {
-        max_msg = 1024
-    };    // Максимальный размер сообщегтя
     int already_read_;  // Ожидание чтения
-    char buff_[max_msg];    // Буфер
+    char buff_[MAX_MSG];    // Буфер
     std::string username_;
     bool clients_changed_;
     boost::posix_time::ptime last_ping;
@@ -73,7 +72,7 @@ public:
     void read_request() {   // Чтение запроса
         if (sock.available())
             already_read_ += sock.read_some(buffer(buff_ + already_read_,
-                                                   max_msg - already_read_));
+                                                   MAX_MSG - already_read_));
     }
 
     void process_request() {    // Обработка полученого запроса
@@ -87,13 +86,13 @@ public:
         // Парсим сообщение
         size_t pos = std::find(buff_, buff_ + already_read_, '\n') - buff_;
         std::string msg(buff_, pos);
-        std::copy(buff_ + already_read_, buff_ + max_msg, buff_);
+        std::copy(buff_ + already_read_, buff_ + MAX_MSG, buff_);
         already_read_ -= pos + 1;
 
         if (msg.find("login ") == 0) on_login(msg);
         else if (msg.find("ping") == 0) on_ping();
         else if (msg.find("ask_clients") == 0) on_clients();
-        else std::cerr << "invalid msg " << msg << std::endl;   // Некорректное сообщение
+        else std::cerr << "invalid msg " << msg << std::endl;
     }
 
     void on_login(const std::string &msg) {    // Регистрация пользователя
@@ -113,9 +112,12 @@ public:
     }
 
 
-    // Клиент может делать следующие запросы: получить список всех подключенных клиентов и
-    // пинговаться, где в ответе сервера будет либо ping_ok, либо client_list_chaned
-    // (в последнем случае клиент повторно запрашивает список подключенных клиентов);
+    // Клиент может делать следующие запросы: получить список
+    // всех подключенных клиентов и
+    // пинговаться, где в ответе сервера будет либо ping_ok,
+    // либо client_list_chaned
+    // (в последнем случае клиент повторно запрашивает список
+    // подключенных клиентов);
     void on_ping() {
         //std::cout<<clients_changed_<<std::endl;
         write(clients_changed_ ? "ping client_list_changed\n" : "ping ok\n");
@@ -143,14 +145,15 @@ public:
     }
 
     bool timed_out() const {    // Подсчет времени для отключения
-        boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
+        boost::posix_time::ptime now =
+                boost::posix_time::microsec_clock::local_time();
         long long ms = (now - last_ping).total_milliseconds();
         return ms > 5000;
     }
 };
 
-
-void accept_thread() {   // Поток для прослушивания новых клиентов
+// Поток для прослушивания новых клиентов
+void accept_thread() {
     // Задаем порт для прослушивания и создаем акцептор (приемник)
     // — один объект, который принимает клиентские подключения
     ip::tcp::acceptor acceptor(service,
@@ -168,7 +171,8 @@ void accept_thread() {   // Поток для прослушивания нов�
     }
 }
 
-void handle_clients_thread() {   // Поток для прослушиваниия существующих клиентов
+// Поток для прослушиваниия существующих клиентов
+void handle_clients_thread() {
     while (true) {
         boost::this_thread::sleep(boost::posix_time::millisec(1));
         // Потокобезопасный доступ к вектору клииентов
@@ -194,5 +198,4 @@ void handle_clients_thread() {   // Поток для прослушивании
 //    threads.join_all();
 //    return 0;
 //}
-
 #endif // INCLUDE_HEADER_HPP_
