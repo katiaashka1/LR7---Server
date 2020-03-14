@@ -18,15 +18,14 @@
 #define MAX_MSG 1024
 
 
-using namespace boost::asio;
+//using namespace boost::asio;
 
 using std::cout;
 using std::endl;
 
 
-
-io_service service; // Экземпляр для общения с сервисом
-                    // ввода/вывода операционной системы
+boost::asio::io_service service; // Экземпляр для общения с сервисом
+// ввода/вывода операционной системы
 boost::recursive_mutex mx;
 
 class Server;
@@ -45,7 +44,7 @@ private:
 public:
     Server() : sock(service), clients_changed_(false) {}
 
-    ip::tcp::socket &sock_r() {
+    boost::asio::ip::tcp::socket &sock_r() {
         return sock;
     }
 
@@ -59,24 +58,24 @@ public:
             process_request();  //Обработка запроса
         }
         catch (boost::system::system_error &)   // Обработка ошибки, которая
-                                                // может произойти в блоке try
+        // может произойти в блоке try
         {
             stop(); // Выключение сервера
         }
         if (timed_out())    // Провека на время. Если клиент не пингутся
-                            // в теченнии 5 сек, то кикнуть его
+            // в теченнии 5 сек, то кикнуть его
             stop();
     }
 
     void read_request() {   // Чтение запроса
         if (sock.available())
-            already_read_ += sock.read_some(buffer(buff_ + already_read_,
-                                                   MAX_MSG - already_read_));
+            already_read_ += sock.read_some(boost::asio::buffer
+                    (buff_ + already_read_, MAX_MSG - already_read_));
     }
 
     void process_request() {    // Обработка полученого запроса
         bool found_enter = std::find(buff_, buff_ + already_read_, '\n')
-                                    < buff_ + already_read_;
+                           < buff_ + already_read_;
         if (!found_enter)
             return;
 // Метка для засекания пинга
@@ -92,7 +91,7 @@ public:
         else if (msg.find("ping") == 0) on_ping();
         else if (msg.find("ask_clients") == 0) on_clients();
         else
-        std::cerr << "invalid msg " << msg << std::endl;
+            std::cerr << "invalid msg " << msg << std::endl;
     }
 
     void on_login(const std::string &msg) {    // Регистрация пользователя
@@ -138,7 +137,7 @@ public:
 
     void write(const std::string &msg) {   // Запись сообшениия в сокета
         //cout<<msg<<endl;
-        sock.write_some(buffer(msg));   //
+        sock.write_some(boost::asio::buffer(msg));   //
     }
 
     void stop() {   // Закрытие сокета
@@ -149,7 +148,7 @@ public:
     bool timed_out() const {    // Подсчет времени для отключения
         boost::posix_time::ptime now =
                 boost::posix_time::microsec_clock::local_time();
-        int64 ms = (now - last_ping).total_milliseconds();
+        int ms = (now - last_ping).total_milliseconds();
         return ms > 5000;
     }
 };
@@ -158,8 +157,8 @@ public:
 void accept_thread() {
     // Задаем порт для прослушивания и создаем акцептор (приемник)
     // — один объект, который принимает клиентские подключения
-    ip::tcp::acceptor acceptor(service,
-            ip::tcp::endpoint(ip::tcp::v4(), 8001));
+    boost::asio::ip::tcp::acceptor acceptor(service,
+            boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 8001));
 
     while (true) {
         // Создаем  умный указатель cl (на сокет)
@@ -185,19 +184,19 @@ void handle_clients_thread() {
 
         // Удаляем клиенты, у которых закончилось время
         clients.erase(std::remove_if(clients.begin(), clients.end(),
-                boost::bind(&Server::timed_out, _1)), clients.end());
+                                     boost::bind(&Server::timed_out, _1)), clients.end());
     }
 }
 
 
-//int main() {
-//    boost::thread_group threads;
-//    // Поток для прослушивания новых клиентов
-//    threads.create_thread(accept_thread);
-//    // Поток для обработки существующих клиентов
-//    threads.create_thread(handle_clients_thread);
-//    // Запуск потоков и ожидание завершения последнего
-//    threads.join_all();
-//    return 0;
-//}
+int main() {
+    boost::thread_group threads;
+    // Поток для прослушивания новых клиентов
+    threads.create_thread(accept_thread);
+    // Поток для обработки существующих клиентов
+    threads.create_thread(handle_clients_thread);
+    // Запуск потоков и ожидание завершения последнего
+    threads.join_all();
+    return 0;
+}
 #endif // INCLUDE_HEADER_HPP_
