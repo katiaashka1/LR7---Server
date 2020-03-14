@@ -166,15 +166,13 @@ public:
 
 // Инициализация логов
 static void init_logging() {
-    logging::add_file_log (
-            keywords::file_name = "info.log",
-            keywords::format = "[%TimeStamp%] [%ThreadID%] [%Severity%] %Message%"
-            );
+    logging::add_file_log  (
+        keywords::file_name = "info.log",
+        keywords::format = "[%TimeStamp%] [%ThreadID%] [%Severity%] %Message%" );
 
-    logging::add_console_log (
-            std::cout,
-            keywords::format = "[%TimeStamp%] [%ThreadID%] [%Severity%] %Message%"
-            );
+    logging::add_console_log  (
+        std::cout,
+        keywords::format = "[%TimeStamp%] [%ThreadID%] [%Severity%] %Message%" );
 
     logging::add_common_attributes();
 }
