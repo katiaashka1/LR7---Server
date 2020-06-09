@@ -35,7 +35,7 @@ std::vector<std::shared_ptr<Client>> clients;
 class Client{
 private:
     ip::tcp::socket sock;
-    enum { max_msg = 1024 };
+    enum { max_msg = 102 };
     int already_read_;
     char buff_[max_msg];
     bool started_;
